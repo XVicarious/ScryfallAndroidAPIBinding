@@ -3,11 +3,11 @@ package us.xvicario.scryfallandroidapibinding;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
+import org.json.simple.DeserializationException;
 import org.json.simple.JsonArray;
 import org.json.simple.JsonObject;
 import org.json.simple.Jsoner;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -24,6 +24,69 @@ import java.util.Date;
 public class ScryfallAPI {
 
     private static final String API_URL = "https://api.scryfall.com";
+
+    /**
+     * Search scryfall!
+     * check out scryfall's syntax here: https://www.scryfall.com/docs/syntax
+     * @param query your query
+     * @return a list of card objects that match the given query
+     * @throws IOException
+     */
+    public static ArrayList<Card> searchScryfall(String query) throws IOException {
+        String escapeQuery = URLEncoder.encode(query, "UTF-8");
+        return getCardsFromUrl(new URL(API_URL + "/cards/search?q=" + escapeQuery));
+    }
+
+    /**
+     * Fetches a card from the given url
+     * @param cardUrl the URL to pull the card from
+     * @return the card
+     * @throws IOException if the input stream cannot be read
+     */
+    public static Card getCardFromUrl(URL cardUrl) throws IOException {
+        URLConnection connection = cardUrl.openConnection();
+        InputStreamReader in = new InputStreamReader(connection.getInputStream(), "UTF-8");
+        try {
+            JsonObject root = (JsonObject) Jsoner.deserialize(in);
+            in.close();
+            return new Card(root);
+        } catch (DeserializationException de) {
+            in.close();
+            return null;
+        }
+    }
+
+    /**
+     * returns an array list of cards from the given url
+     * @param cardsUrl the url to get the cards from
+     * @return an arraylist of card objects
+     * @throws IOException when reading from the input stream fails
+     */
+    public static ArrayList<Card> getCardsFromUrl(URL cardsUrl) throws IOException {
+        ArrayList<Card> cards = new ArrayList<>();
+        URLConnection connection = cardsUrl.openConnection();
+        InputStreamReader in = new InputStreamReader(connection.getInputStream(), "UTF-8");
+        JsonObject root;
+        try {
+            root = (JsonObject) Jsoner.deserialize(in);
+        } catch (DeserializationException de) {
+            in.close();
+            return null;
+        }
+        in.close();
+        JsonArray jsonCards = (JsonArray) root.get("data");
+        for (Object card : jsonCards) {
+            cards.add(new Card((JsonObject) card));
+        }
+        if (root.containsKey("has_more") && root.getBoolean("has_more")) {
+            String next = root.getString("next_page");
+            try {
+                Thread.sleep(50); // Scryfall's wait time between queries
+            } catch (InterruptedException ie) {}
+            cards.addAll(getCardsFromUrl(new URL(next)));
+        }
+        return cards;
+    }
 
     /**
      * Retrieves a bitmap of the card from the provided URL
@@ -75,20 +138,13 @@ public class ScryfallAPI {
      * Returns a list of sets
      * @return an arraylist of sets of magic cards
      */
-    public static ArrayList<Set> getSets() {
+    public static ArrayList<Set> getSets() throws IOException {
         ArrayList<Set> sets = new ArrayList<>();
+        URL setsURL = new URL(API_URL + "/sets");
+        URLConnection connection = setsURL.openConnection();
+        InputStreamReader in = new InputStreamReader(connection.getInputStream(), "UTF-8");
         try {
-            URL setsURL = new URL(API_URL + "/sets");
-            URLConnection connection = setsURL.openConnection();
-            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"));
-            String json = "";
-            String line = "";
-            while (line != null) {
-                json += line;
-                line = in.readLine();
-            }
-            JsonObject root;
-            root = (JsonObject) Jsoner.deserialize(json);
+            JsonObject root = (JsonObject) Jsoner.deserialize(in);
             in.close();
             JsonArray jsonSets = (JsonArray) root.get("data");
             for (Object set : jsonSets) {
@@ -101,7 +157,8 @@ public class ScryfallAPI {
                 sets.add(new Set(code, name, type, date));
             }
             return sets;
-        } catch (Exception e) {
+        } catch (Exception de) {
+            in.close();
             return null;
         }
     }
