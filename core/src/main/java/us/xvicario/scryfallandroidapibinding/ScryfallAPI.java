@@ -3,10 +3,7 @@ package us.xvicario.scryfallandroidapibinding;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
-import org.json.simple.DeserializationException;
-import org.json.simple.JsonArray;
-import org.json.simple.JsonObject;
-import org.json.simple.Jsoner;
+import com.google.gson.Gson;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,14 +13,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 
 public class ScryfallAPI {
 
     private static final String API_URL = "https://api.scryfall.com";
+    private static final Gson GSON = new Gson();
 
     /**
      * Search scryfall!
@@ -46,14 +41,9 @@ public class ScryfallAPI {
     public static Card getCardFromUrl(URL cardUrl) throws IOException {
         URLConnection connection = cardUrl.openConnection();
         InputStreamReader in = new InputStreamReader(connection.getInputStream(), "UTF-8");
-        try {
-            JsonObject root = (JsonObject) Jsoner.deserialize(in);
-            in.close();
-            return new Card(root);
-        } catch (DeserializationException de) {
-            in.close();
-            return null;
-        }
+        Card card = GSON.fromJson(in, Card.class);
+        in.close();
+        return card;
     }
 
     /**
@@ -66,7 +56,7 @@ public class ScryfallAPI {
         ArrayList<Card> cards = new ArrayList<>();
         URLConnection connection = cardsUrl.openConnection();
         InputStreamReader in = new InputStreamReader(connection.getInputStream(), "UTF-8");
-        JsonObject root;
+        /*JsonObject root;
         try {
             root = (JsonObject) Jsoner.deserialize(in);
         } catch (DeserializationException de) {
@@ -84,7 +74,7 @@ public class ScryfallAPI {
                 Thread.sleep(50); // Scryfall's wait time between queries
             } catch (InterruptedException ie) {}
             cards.addAll(getCardsFromUrl(new URL(next)));
-        }
+        }*/
         return cards;
     }
 
@@ -105,6 +95,15 @@ public class ScryfallAPI {
         }
     }
 
+    public static Card getCardFromMultiverse(int multiverseId) {
+        try {
+            URL cardURL = new URL(API_URL + "/cards/multiverse/" + multiverseId);
+            return getCardFromUrl(cardURL);
+        } catch (IOException ioe) {
+            return null;
+        }
+    }
+
     /**
      * Returns a bitmap of the card with the given multiverse id
      * @param multiverseId the multiverse id of the card
@@ -112,7 +111,7 @@ public class ScryfallAPI {
      */
     public static Bitmap getCardImageFromMultiverse(int multiverseId) {
         try {
-            URL cardURL = new URL(API_URL + "/cards/multiverseid/" + multiverseId + "?format=image");
+            URL cardURL = new URL(API_URL + "/cards/multiverse/" + multiverseId + "?format=image");
             return getCardImageFromURL(cardURL);
         } catch (MalformedURLException mue) {
             return null;
@@ -143,7 +142,7 @@ public class ScryfallAPI {
         URL setsURL = new URL(API_URL + "/sets");
         URLConnection connection = setsURL.openConnection();
         InputStreamReader in = new InputStreamReader(connection.getInputStream(), "UTF-8");
-        try {
+        /*try {
             JsonObject root = (JsonObject) Jsoner.deserialize(in);
             in.close();
             JsonArray jsonSets = (JsonArray) root.get("data");
@@ -160,7 +159,8 @@ public class ScryfallAPI {
         } catch (Exception de) {
             in.close();
             return null;
-        }
+        }*/
+        return null;
     }
 
 }
