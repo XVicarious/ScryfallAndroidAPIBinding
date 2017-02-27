@@ -1,9 +1,11 @@
 apply plugin: 'com.android.library'
+//apply plugin: 'com.github.dcendents.android-maven'
+apply plugin: 'com.jfrog.bintray'
 
 ext {
     PUBLISH_GROUP_ID = 'us.xvicario.scryfallandroidapibinding'
     PUBLISH_ARTIFACT_ID = 'core'
-    PUBLISH_VERSION = '0.1.0.1'
+    PUBLISH_VERSION = '1.0.0'
     SUPPORT_LIBRARY_VERSION = '25.1.1'
     BUILD_TOOLS = '25.0.2'
     TARGET_SDK = 25
@@ -17,6 +19,23 @@ android {
         targetSdkVersion TARGET_SDK
         versionCode 1
         versionName PUBLISH_VERSION
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}
+
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+bintray {
+    user = properties.getProperty("bintray.user")
+    key = properties.getProperty("bintray.apikey")
+    pkg {
+        repo = "maven"
+        name = "scryfallandroidapi"
     }
 }
 
